@@ -10,6 +10,7 @@ async def async_fetch_users():
             print("All users:")
             for row in rows:
                 print(row)
+            return rows  # ✅ Added
 
 async def async_fetch_older_users():
     async with aiosqlite.connect(DB_NAME) as db:
@@ -18,6 +19,7 @@ async def async_fetch_older_users():
             print("\nUsers older than 40:")
             for row in rows:
                 print(row)
+            return rows  # ✅ Added
 
 async def fetch_concurrently():
     await asyncio.gather(
