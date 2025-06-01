@@ -2,8 +2,10 @@
 """Unit tests for GithubOrgClient.org and related properties"""
 import unittest
 from unittest.mock import patch, PropertyMock
-from parameterized import parameterized
+from parameterized import parameterized, parameterized_class
 from client import GithubOrgClient
+import fixtures
+import requests
 
 import sys
 import os
@@ -85,6 +87,43 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test has_license returns expected boolean based on repo license"""
         result = GithubOrgClient.has_license(repo, license_key)
         self.assertEqual(result, expected)
+
+
+@parameterized_class([
+    {
+        "org_payload": fixtures.TEST_PAYLOAD[0][0],
+        "repos_payload": fixtures.TEST_PAYLOAD[0][1],
+        "expected_repos": fixtures.TEST_PAYLOAD[0][2],
+        "apache2_repos": fixtures.TEST_PAYLOAD[0][3],
+    }
+])
+class TestIntegrationGithubOrgClient(unittest.TestCase):
+    """Integration tests for GithubOrgClient.public_repos"""
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up mock for requests.get().json() using fixture data"""
+        cls.get_patcher = patch("requests.get")
+        mock_get = cls.get_patcher.start()
+
+        mock_get.side_effect = lambda url: MockResponse(
+            cls.org_payload if url.endswith("/orgs/google") else cls.repos_payload
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        """Stop patcher after all tests run"""
+        cls.get_patcher.stop()
+
+
+class MockResponse:
+    """Mock response object for requests.get()"""
+
+    def __init__(self, payload):
+        self._payload = payload
+
+    def json(self):
+        return self._payload
 
 
 if __name__ == "__main__":
