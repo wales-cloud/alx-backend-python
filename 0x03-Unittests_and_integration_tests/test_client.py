@@ -5,6 +5,10 @@ from unittest.mock import patch, PropertyMock
 from parameterized import parameterized
 from client import GithubOrgClient
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 
 class TestGithubOrgClient(unittest.TestCase):
     """Tests for the GithubOrgClient class"""
@@ -29,7 +33,9 @@ class TestGithubOrgClient(unittest.TestCase):
     @patch.object(GithubOrgClient, 'org', new_callable=PropertyMock)
     def test_public_repos_url(self, mock_org):
         """Test that _public_repos_url returns expected value from org payload"""
-        mock_org.return_value = {"repos_url": "https://api.github.com/orgs/test/repos"}
+        mock_org.return_value = {
+            "repos_url": "https://api.github.com/orgs/test/repos"
+        }
         client = GithubOrgClient("test")
         self.assertEqual(
             client._public_repos_url,
@@ -48,14 +54,15 @@ class TestGithubOrgClient(unittest.TestCase):
         with patch.object(
             GithubOrgClient,
             "_public_repos_url",
-            new=PropertyMock(return_value="https://api.github.com/orgs/test/repos")
-        ) as mock_repos_url:
+            new=PropertyMock(
+                return_value="https://api.github.com/orgs/test/repos"
+            )
+        ) as mock_url:
             client = GithubOrgClient("test")
             result = client.public_repos()
-
             self.assertEqual(result, ["repo1", "repo2"])
             mock_get_json.assert_called_once()
-            mock_repos_url.assert_called_once()
+            mock_url.assert_called_once()
 
 
 if __name__ == "__main__":
