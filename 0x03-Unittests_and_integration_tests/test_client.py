@@ -57,7 +57,9 @@ class TestGithubOrgClient(unittest.TestCase):
             GithubOrgClient,
             "_public_repos_url",
             new=PropertyMock(
-                return_value="https://api.github.com/orgs/test/repos"
+                return_value=(
+                    "https://api.github.com/orgs/test/repos"
+                )
             )
         ) as mock_url:
             client = GithubOrgClient("test")
@@ -135,12 +137,13 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
 
 class MockResponse:
-    """Mock response object for requests.get()"""
+    """Mock response object that returns provided JSON payload"""
 
     def __init__(self, payload):
         self._payload = payload
 
     def json(self):
+        """Return the JSON payload"""
         return self._payload
 
 
