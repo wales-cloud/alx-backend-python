@@ -1,12 +1,19 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
+from .permissions import IsParticipantOfConversation
 
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    filter_backends = [filters.OrderingFilter]  # Satisfies the "filters" checker
+    filter_backends = [filters.OrderingFilter]
+    permission_classes = [IsAuthenticated, IsParticipantOfConversation]
+
+    def get_queryset(self):
+        # Users can only see conversations they are part of
+        return Conversation.objects.filter(participants=self.request.user)
 
     def create(self, request, *args, **kwargs):
         participant_ids = request.data.get("participants", [])
@@ -23,7 +30,12 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    filter_backends = [filters.OrderingFilter]  # Optional, helps with ordering/filtering
+    filter_backends = [filters.OrderingFilter]
+    permission_classes = [IsAuthenticated, IsParticipantOfConversation]
+
+    def get_queryset(self):
+        # Filter messages to only those in user's conversations
+        return Message.objects.filter(conversation__participants=self.request.user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
