@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from time import time as timestamp
 import logging
 from django.http import JsonResponse
 
@@ -10,9 +11,10 @@ file_handler = logging.FileHandler("requests.log")
 formatter = logging.Formatter('%(message)s')
 file_handler.setFormatter(formatter)
 
-# Prevent duplicate handlers
+# Avoid duplicate handlers in dev mode
 if not logger.handlers:
     logger.addHandler(file_handler)
+
 
 class RequestLoggingMiddleware:
     def __init__(self, get_response):
@@ -23,8 +25,7 @@ class RequestLoggingMiddleware:
         log_entry = f"{datetime.now()} - User: {user} - Path: {request.path}"
         logger.info(log_entry)
 
-        response = self.get_response(request)
-        return response
+        return self.get_response(request)
 
 
 class RestrictAccessByTimeMiddleware:
@@ -32,7 +33,6 @@ class RestrictAccessByTimeMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Apply only to chat endpoints
         if request.path.startswith('/api/messages') or request.path.startswith('/api/conversations'):
             now = datetime.now().time()
             allowed_start = time(18, 0)  # 6:00 PM
@@ -43,5 +43,32 @@ class RestrictAccessByTimeMiddleware:
                     {"error": "Access to chats is restricted outside 6PM to 9PM."},
                     status=403
                 )
+        return self.get_response(request)
+
+
+class OffensiveLanguageMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.ip_history = {}  # {ip: [timestamps]}
+
+    def __call__(self, request):
+        if request.path.startswith('/api/messages') and request.method == "POST":
+            ip = self.get_client_ip(request)
+            now = timestamp()
+            timestamps = self.ip_history.get(ip, [])
+            # Keep only timestamps from the last 60 seconds
+            timestamps = [t for t in timestamps if now - t < 60]
+
+            if len(timestamps) >= 5:
+                return JsonResponse(
+                    {"error": "Rate limit exceeded: Only 5 messages per minute allowed."},
+                    status=403
+                )
+
+            timestamps.append(now)
+            self.ip_history[ip] = timestamps
 
         return self.get_response(request)
+
+    def get_client_ip(self, request):
+        return request.META.get('REMOTE_ADDR', '')
