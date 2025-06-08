@@ -72,3 +72,26 @@ class OffensiveLanguageMiddleware:
 
     def get_client_ip(self, request):
         return request.META.get('REMOTE_ADDR', '')
+
+
+class RolepermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        restricted_paths = ['/api/messages', '/api/conversations']
+        if any(request.path.startswith(p) for p in restricted_paths):
+            if request.user.is_authenticated:
+                role = getattr(request.user, 'role', None)
+                if role not in ['admin', 'moderator']:
+                    return JsonResponse(
+                        {"error": "You do not have permission to perform this action."},
+                        status=403
+                    )
+            else:
+                return JsonResponse(
+                    {"error": "Authentication required."},
+                    status=403
+                )
+
+        return self.get_response(request)
