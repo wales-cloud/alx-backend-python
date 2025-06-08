@@ -1,5 +1,6 @@
-from datetime import datetime
+from datetime import datetime, time
 import logging
+from django.http import JsonResponse
 
 # Configure file-based logger
 logger = logging.getLogger("request_logger")
@@ -24,3 +25,23 @@ class RequestLoggingMiddleware:
 
         response = self.get_response(request)
         return response
+
+
+class RestrictAccessByTimeMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Apply only to chat endpoints
+        if request.path.startswith('/api/messages') or request.path.startswith('/api/conversations'):
+            now = datetime.now().time()
+            allowed_start = time(18, 0)  # 6:00 PM
+            allowed_end = time(21, 0)    # 9:00 PM
+
+            if not (allowed_start <= now <= allowed_end):
+                return JsonResponse(
+                    {"error": "Access to chats is restricted outside 6PM to 9PM."},
+                    status=403
+                )
+
+        return self.get_response(request)
