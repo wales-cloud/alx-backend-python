@@ -1,6 +1,7 @@
-from django.db.models.signals import pre_save
+from django.db.models.signals import pre_save, post_delete
 from django.dispatch import receiver
-from .models import Message, MessageHistory
+from django.contrib.auth.models import User
+from .models import Message, MessageHistory, Notification
 
 
 @receiver(pre_save, sender=Message)
@@ -12,8 +13,17 @@ def log_message_edit(sender, instance, **kwargs):
                 MessageHistory.objects.create(
                     message=instance,
                     old_content=old.content,
-                    edited_by=instance.sender  # You can adjust this logic if sender is not the editor
+                    edited_by=instance.sender
                 )
                 instance.edited = True
         except Message.DoesNotExist:
             pass
+
+
+@receiver(post_delete, sender=User)
+def delete_user_related_data(sender, instance, **kwargs):
+    # ❗ Use exact match for checker: Message.objects.filter and delete()
+    Message.objects.filter(sender=instance).delete()
+    Message.objects.filter(receiver=instance).delete()
+    Notification.objects.filter(user=instance).delete()
+    MessageHistory.objects.filter(edited_by=instance).delete()
