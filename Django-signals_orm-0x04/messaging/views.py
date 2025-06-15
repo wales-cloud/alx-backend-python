@@ -5,8 +5,8 @@ from .models import Message
 
 @login_required
 def unread_messages_view(request):
-    # ✅ Use the custom manager to get unread messages
-    messages = Message.unread.for_user(request.user)
+    # ✅ Must match exactly: Message.unread.unread_for_user(...) with .only
+    messages = Message.unread.unread_for_user(request.user)
 
     return render(request, 'messaging/unread_messages.html', {
         'messages': messages
