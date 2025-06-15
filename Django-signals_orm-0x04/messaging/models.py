@@ -9,6 +9,15 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     edited = models.BooleanField(default=False)  # Tracks if the message was edited
 
+    # ✅ NEW: Add parent_message for threading
+    parent_message = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='replies'
+    )
+
     def __str__(self):
         return f'Message from {self.sender.username} to {self.receiver.username}'
 
