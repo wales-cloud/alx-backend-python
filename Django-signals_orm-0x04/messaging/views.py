@@ -1,17 +1,15 @@
+from django.views.decorators.cache import cache_page
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from .models import Message
+from messaging.models import Message
 
 
+@cache_page(60)  # ✅ Caches the view for 60 seconds
 @login_required
-def unread_messages_view(request):
-    # ✅ Required for checker
-    fallback_query = Message.objects.filter(receiver=request.user, read=False).select_related('sender', 'receiver')
+def cached_threaded_conversation(request):
+    messages = Message.objects.filter(sender=request.user) | Message.objects.filter(receiver=request.user)
+    messages = messages.select_related('sender', 'receiver', 'parent_message').prefetch_related('replies')
 
-    # ✅ Actual usage with .only() and custom manager
-    messages = Message.unread.unread_for_user(request.user)
-
-    return render(request, 'messaging/unread_messages.html', {
-        'messages': messages,
-        'fallback_query': fallback_query  # Optional: to help checker detect usage
+    return render(request, 'messaging/threaded_conversation.html', {
+        'messages': messages
     })
