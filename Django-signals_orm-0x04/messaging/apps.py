@@ -1,9 +1,8 @@
-# messaging/apps.py
-
 from django.apps import AppConfig
+
 
 class MessagingConfig(AppConfig):
     name = 'messaging'
 
     def ready(self):
-        import messaging.signals  # noqa
+        import messaging.signals  # Ensures signals are registered when app loads
