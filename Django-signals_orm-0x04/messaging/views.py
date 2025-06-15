@@ -4,20 +4,10 @@ from .models import Message
 
 
 @login_required
-def threaded_conversation(request):
-    # ✅ Checker expects sender=request.user and receiver=request.user explicitly in this line
-    messages = Message.objects.filter(sender=request.user).select_related('sender', 'receiver', 'parent_message').prefetch_related('replies') | \
-               Message.objects.filter(receiver=request.user).select_related('sender', 'receiver', 'parent_message').prefetch_related('replies')
+def unread_messages_view(request):
+    # ✅ Use the custom manager to get unread messages
+    messages = Message.unread.for_user(request.user)
 
-    context = {
+    return render(request, 'messaging/unread_messages.html', {
         'messages': messages
-    }
-    return render(request, 'messaging/threaded_conversation.html', context)
-
-
-# ✅ Optional recursive builder if you're displaying threads
-def build_thread(message):
-    return {
-        'message': message,
-        'replies': [build_thread(reply) for reply in message.replies.all()]
-    }
+    })
